@@ -30,6 +30,16 @@ button{padding:11px 14px;border:0;border-radius:7px;font-weight:bold;margin:3px;
 </style>
 </head>
 <body>
+<style>
+#loginScreen{position:fixed;inset:0;background:#111;display:flex;align-items:center;justify-content:center;z-index:99999}
+#loginBox{background:#222;border:1px solid #555;border-radius:12px;padding:28px;width:min(360px,85%);text-align:center;box-sizing:border-box}
+#loginBox h2{margin:0 0 18px}
+#loginPassword{width:100%;box-sizing:border-box;padding:12px;border-radius:7px;border:1px solid #666;background:#111;color:#fff;font-size:18px;text-align:center}
+#loginButton{width:100%;margin-top:12px;padding:12px;border:0;border-radius:7px;font-size:16px;font-weight:bold;cursor:pointer}
+#loginError{color:#ff7777;min-height:22px;margin-top:10px}
+</style>
+<div id="loginScreen"><div id="loginBox"><h2>POKER NL25 6-MAX</h2><div>Ingresá la contraseña para jugar</div><input id="loginPassword" type="password" autocomplete="off" placeholder="Contraseña"><button id="loginButton" type="button">INGRESAR</button><div id="loginError"></div></div></div>
+
 <div class="wrap"><div class="main">
 <h2>♠️ TEXAS HOLD'EM — NL25 6-MAX</h2>
 <div class="sub">Vos vs 5 máquinas · Ciegas $0,10 / $0,25 · Stack inicial $25</div>
@@ -895,7 +905,11 @@ window.quick=quick;window.newHand=newHand;window.human=human;window.downloadMyHa
 window.addEventListener("error",e=>{document.getElementById("msg").textContent="Error: "+e.message});
 setup();
 totalHands=0;participatedHands=0;
-newHand();
+const LOGIN_PASSWORD="BAMBA25";
+const loginScreen=document.getElementById("loginScreen"), loginPassword=document.getElementById("loginPassword"), loginButton=document.getElementById("loginButton"), loginError=document.getElementById("loginError");
+function login(){if(loginPassword.value===LOGIN_PASSWORD){loginScreen.style.display="none";newHand();}else{loginError.textContent="Contraseña incorrecta";loginPassword.value="";loginPassword.focus();}}
+loginButton.addEventListener("click",login);
+loginPassword.addEventListener("keydown",e=>{if(e.key==="Enter")login();});
 })();
 </script>
 </body>
