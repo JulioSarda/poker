@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Bambav1.1 — Poker NL25 6-Max Manual</title>
+<style>
+html,body{margin:0;padding:0;background:#111;color:white;font-family:Arial,sans-serif}
+body{min-height:100vh}.wrap{max-width:1180px;margin:auto;padding:10px}.main{width:900px;max-width:100%}.sideboards{position:fixed;right:calc((100vw - min(1180px, 100vw - 20px))/2 + 20px);top:48px;width:245px;z-index:10}.leaderboard{position:static;width:245px;background:#202b31;border:2px solid #89949a;border-radius:10px;padding:10px;z-index:10;box-shadow:0 0 14px #000}.leaderboard h3{margin:0 0 6px;font-size:14px;color:#ffd34d}.rankrow{display:grid;grid-template-columns:22px 1fr 78px;gap:4px;padding:5px 3px;border-bottom:1px solid #465158;font-size:10px;align-items:center}.rankrow:last-child{border-bottom:0}.ranknum{font-weight:bold;color:#ffd34d}.rankname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ranktotal{text-align:right;font-weight:bold;color:#9fe3ff}.ranksub{font-size:7px;color:#9aa8ae;font-weight:normal}.ranklegend{font-size:8px;color:#aaa;margin-top:7px;line-height:1.25}.leaderboard2{margin-top:10px}.allinrow{display:grid;grid-template-columns:22px 1fr 92px;gap:4px;padding:5px 3px;border-bottom:1px solid #465158;font-size:10px;align-items:center}.allinrow:last-child{border-bottom:0}.allinscore{text-align:right;font-weight:bold}.allinsub{font-size:7px;color:#9aa8ae;font-weight:normal}@media(max-width:1150px){.sideboards{position:static;width:100%;margin:10px auto}.leaderboard,.leaderboard2{position:static;width:calc(94vw - 20px);max-width:740px;margin:10px auto}.main{width:100%}}
+h2{margin:4px 0;font-size:20px}.sub{font-size:13px;color:#bbb}
+#table{position:relative;margin:12px auto;width:94vw;max-width:760px;height:480px;background:#087044;border:10px solid #54351f;border-radius:48%;box-shadow:0 0 20px #000}
+.player{position:absolute;width:125px;min-height:54px;background:#202b31;border:2px solid #89949a;border-radius:10px;padding:5px;font-size:11px;z-index:2}
+.player.active{border-color:#ffd33d;box-shadow:0 0 10px #ffd33d}.player.winner{border-color:#55ff7a;box-shadow:0 0 18px #55ff7a,0 0 35px #55ff7a}.winmark{color:#55ff7a;font-weight:bold;font-size:12px}
+.me{border-color:#4dc3ff}
+.p0{bottom:5px;left:50%;transform:translateX(-50%)}
+.p1{left:1%;bottom:72px}
+.p2{left:1%;top:72px}
+.p3{top:5px;left:50%;transform:translateX(-50%)}
+.p4{right:1%;top:72px}
+.p5{right:1%;bottom:72px}
+#pot{position:absolute;top:41%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:bold}#direction{position:absolute;top:28%;left:50%;transform:translateX(-50%);font-size:25px;opacity:.7;text-align:center;white-space:nowrap}#direction small{font-size:9px;display:block}
+#board{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);display:flex;gap:2px}
+.card{width:26px;height:37px;font-size:16px;background:white;color:#111;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:bold}
+.red{color:#c00}.back{background:#263d91;color:white;border:2px solid white}
+#controls{text-align:center}.exportrow{display:flex;justify-content:center;gap:4px;flex-wrap:nowrap;margin-top:3px}.exportrow button{margin:2px;padding:9px 10px;font-size:12px}.betrow{display:flex;justify-content:center;gap:5px;margin:7px}.betrow input{width:85px;padding:10px;border-radius:6px;border:0}
+button{padding:11px 14px;border:0;border-radius:7px;font-weight:bold;margin:3px;cursor:pointer}
+#fold{background:#d9534f;color:white}#call{background:#ddd}#raise{background:#ffc107}#allin{background:#7d3cff;color:white}button:disabled{opacity:.35}
+#msg{min-height:25px;text-align:center;font-weight:bold}.log{height:90px;overflow:auto;background:#20282d;border-radius:8px;padding:7px;font-size:12px;margin-top:5px}
+@media(max-width:600px){#table{height:390px;border-width:7px}.player{width:100px;min-height:48px;padding:4px;font-size:9px}.card{width:23px;height:33px;font-size:13px}#pot{font-size:16px}.p1,.p5{bottom:60px}.p2,.p4{top:60px}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="main">
+<h2>♠️ TEXAS HOLD'EM — NL25 6-MAX</h2>
+<div class="sub">Vos vs 5 máquinas · Ciegas $0,10 / $0,25 · Stack inicial $25</div>
+
+<div class="sideboards"><div id="leaderboard" class="leaderboard"></div><div id="allinLeaderboard" class="leaderboard leaderboard2"></div></div>
+<div id="table">
+<div id="pot">POT $0.00</div><div id="direction">↻<small> sentido horario</small></div><div id="board"></div>
+</div>
+
+<div id="sessionStats" style="text-align:center;margin:6px 0 8px;font-size:13px;background:#20282d;border-radius:8px;padding:7px">
+  <b>SESIÓN</b> · MANOS SIMULADAS: <span id="totalHands">0</span> / 1000 · MANOS VOS: <span id="participatedHands">0</span> · VPIP: <span id="heroVpipHud">0.0%</span> · PFR: <span id="heroPfrHud">0.0%</span> · Capital: <span id="sessionBankroll">$25.00</span>
+</div>
+<div id="controls">
+<div id="msg">Preparando la mesa...</div>
+<div class="betrow">
+<input id="amount" type="number" value="0.75" min="0.25" step="0.25">
+<button onclick="quick(.75)">3 BB</button><button onclick="quick(1.25)">5 BB</button>
+<button onclick="quick(2.50)">10 BB</button>
+</div>
+<button id="fold" onclick="human('fold')">FOLD</button>
+<button id="check" onclick="human('check')">CHECK</button>
+<button id="call" onclick="human('call')">CALL</button>
+<button id="raise" onclick="human('raise')">BET / RAISE</button>
+<button id="allin" onclick="human('allin')">ALL-IN</button>
+<button onclick="newHand()">NUEVA MANO</button><div class="exportrow"><button onclick="downloadMyHands()">💾 MIS MANOS</button><button onclick="downloadMyStats()">📊 MIS ESTADÍSTICAS</button><button onclick="downloadBotStats()">📊 ESTADÍSTICAS BOTS</button><button onclick="downloadAllInStats()">🔥 ESTADÍSTICAS ALL-IN</button></div>
+</div>
+<div class="log" id="log"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const suits=["♠","♥","♦","♣"], ranks=["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
+const names=["VOS","Tight-Reg","Loose","LAG","Calling Station","Balanced-Reg"]; const baseStats=[null,{vpip:16,pfr:14,three:5},{vpip:32,pfr:24,three:8},{vpip:27,pfr:23,three:11},{vpip:30,pfr:12,three:3},{vpip:23,pfr:19,three:7}];
+let ps=[],deck=[],board=[],pot=0,dealer=0,current=0,street=0,over=false,highest=0,hand=0,acted=new Set(),preflopRaiseCount=0;
+let initiative=-1,heroRaisedStreet=false;
+let lastRaiseSize=.25,roundActions=0;
+let totalHands=0,participatedHands=0,autoRun=false,maxHands=1000,sessionStartStack=25;
+let flopHadBet=false;
+let heroInHand=false, currentHandLog=[], myHandsLog=[];
+let allInEvents=[], allInSeq=0;
+
+function M(n){return "$"+Number(n).toFixed(2)}
+function say(t){const l=document.getElementById("log");l.innerHTML="<div>"+t+"</div>"+l.innerHTML; currentHandLog.push(String(t).replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/\s+/g," ").trim())}
+function fresh(){deck=[];for(const s of suits)for(const r of ranks)deck.push(r+s);for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}}
+function card(){return deck.pop()}
+function val(c){return ranks.indexOf(c[0])+2}
+function red(c){return c[1]=="♥"||c[1]=="♦"}
+function cardHTML(c,hide){return '<span class="card '+(hide?"back":(red(c)?"red":""))+'">'+(hide?"★":c)+'</span>'}
+function setup(){allInEvents=[];allInSeq=0;document.getElementById("allinLeaderboard")&&(document.getElementById("allinLeaderboard").innerHTML="");ps=names.map((n,i)=>({name:n,stack:25,hand:[],bet:0,total:0,lastAction:"",fold:false,allin:false,winner:false,reveal:false,bot:i>0,style:i,vpip:baseStats[i]?baseStats[i].vpip:0,pfr:baseStats[i]?baseStats[i].pfr:0,three:baseStats[i]?baseStats[i].three:0,recargas:0,guardas:0,allinGanados:0,allinPerdidos:0,pfOpp:0,pfVPIP:0,pfPFR:0,pf3bet:0,pf3betOpp:0,pfFold:0,_pfOppCounted:false,_pfVPIPCounted:false,_pfPFRCounted:false,_pf3BetCounted:false,_pf3BetOppCounted:false,_pfFoldCounted:false,postOpp:0,postBet:0,postCall:0,postRaise:0,postReraise:0,postFold:0,postCheck:0,showdowns:0,wonShowdowns:0}))}
+
+function recordAction(idx, streetNum, action, wasFacing=false, isOpportunity=true){
+ const p=ps[idx]; if(!p)return;
+ action=String(action||"").toUpperCase();
+ if(streetNum===0){
+   // V3.22: estadísticas preflop de VOS y bots con acción normalizada.
+   // La oportunidad se cuenta una sola vez por mano cuando el jugador llega a decidir.
+   if(isOpportunity && !p._pfOppCounted){p.pfOpp=(p.pfOpp||0)+1;p._pfOppCounted=true;}
+   if(action!=="FOLD" && !p._pfVPIPCounted){p.pfVPIP=(p.pfVPIP||0)+1;p._pfVPIPCounted=true;}
+   if((action==="OPEN"||action==="OPEN 2X"||action==="2X"||action==="2.5X"||action==="3-BET") && !p._pfPFRCounted){p.pfPFR=(p.pfPFR||0)+1;p._pfPFRCounted=true;}
+   if(action==="3-BET" && !p._pf3BetCounted){p.pf3bet=(p.pf3bet||0)+1;p._pf3BetCounted=true;}
+   if(action==="FOLD" && !p._pfFoldCounted){p.pfFold=(p.pfFold||0)+1;p._pfFoldCounted=true;}
+ }else{
+   p.postOpp=(p.postOpp||0)+1;
+   if(action.indexOf("BET")===0) p.postBet=(p.postBet||0)+1;
+   else if(action.indexOf("CALL")===0) p.postCall=(p.postCall||0)+1;
+   else if(action.indexOf("RAISE")===0){ p.postRaise=(p.postRaise||0)+1; if(wasFacing)p.postReraise=(p.postReraise||0)+1; }
+   else if(action.indexOf("FOLD")===0) p.postFold=(p.postFold||0)+1;
+   else if(action.indexOf("CHECK")===0) p.postCheck=(p.postCheck||0)+1;
+ }
+}
+function pct(n,d){return d?((n/d)*100).toFixed(1):"0.0"}
+function currentHandAllIns(){return allInEvents.filter(e=>e.hand===hand)}
+function registerAllInAfterAction(idx, action, streetNum, beforeStack){
+ const p=ps[idx]; if(!p || beforeStack<=0)return;
+ const act=String(action||"").toUpperCase().trim();
+ const verb=act.split(/\s+/)[0];
+ const isAllIn=(act==="ALL-IN"||act==="ALLIN");
+ const isCall=(verb==="CALL");
+
+ // SOLO una acción explícita ALL-IN crea un evento de ALL-IN realizado.
+ // Un CALL que deja el stack en 0 NO crea un ALL-IN realizado.
+ if(isAllIn && p.stack<=0 && p.allin){
+   allInEvents.push({
+     id:++allInSeq,
+     hand:hand,
+     playerIndex:idx,
+     playerName:p.name,
+     playerType:p.bot?"BOT":"VOS",
+     street:streetNum,
+     action:"ALL-IN",
+     amountTotal:Number(p.total)||0,
+     payers:[],
+     result:"PENDIENTE"
+   });
+ }
+
+ // Un CALL paga únicamente el ALL-IN pendiente que efectivamente está cubriendo.
+ // Se vincula al evento pendiente más reciente cuyo importe ya queda cubierto.
+ if(isCall){
+   const pending=allInEvents.filter(e=>
+     e.hand===hand &&
+     e.playerIndex!==idx &&
+     e.result==="PENDIENTE" &&
+     !e.payers.includes(idx) &&
+     Number(p.total)+0.001>=Number(e.amountTotal)
+   );
+   if(pending.length){
+     pending[pending.length-1].payers.push(idx);
+   }
+ }
+}
+function finalizeCurrentHandAllIns(winners){
+ const events=currentHandAllIns();
+ const winnerIndices=new Set(winners.map(p=>ps.indexOf(p)).filter(i=>i>=0));
+ events.forEach(e=>{
+   e.payers=[...new Set(e.payers)].filter(i=>i!==e.playerIndex && i>=0 && i<ps.length);
+   e.resultsByPlayer={};
+   const participants=[...new Set([e.playerIndex,...e.payers])];
+   const participantWinners=participants.filter(i=>winnerIndices.has(i));
+
+   // El resultado de cada jugador se calcula sobre su propia participación.
+   // Los empates no cuentan como GANO ni PERDIO.
+   if(e.payers.length===0){
+     e.result="SIN PAGO";
+     return;
+   }
+   if(winners.length>1){
+     e.result=participantWinners.length?"EMPATE":"PERDIO";
+     participants.forEach(i=>{e.resultsByPlayer[i]=winnerIndices.has(i)?"EMPATE":"PERDIO";});
+   }else{
+     e.result=winnerIndices.has(e.playerIndex)?"GANO":"PERDIO";
+     participants.forEach(i=>{e.resultsByPlayer[i]=winnerIndices.has(i)?"GANO":"PERDIO";});
+   }
+ });
+
+ // Recalcular SIEMPRE los resultados exclusivamente desde los eventos ALL-IN.
+ // No usamos p.allin para W/L: p.allin solo representa estado de juego.
+ ps.forEach(p=>{p.allinGanados=0;p.allinPerdidos=0;});
+ allInEvents.forEach(e=>{
+   if(!e.resultsByPlayer)return;
+   Object.entries(e.resultsByPlayer).forEach(([k,r])=>{
+     const i=Number(k);
+     if(r==="GANO")ps[i].allinGanados++;
+     else if(r==="PERDIO")ps[i].allinPerdidos++;
+   });
+ });
+}
+function allInPlayerStats(idx){
+ let ganados=0,perdidos=0,empates=0;
+ allInEvents.forEach(e=>{
+   const r=e.resultsByPlayer&&e.resultsByPlayer[idx];
+   if(r==="GANO")ganados++;
+   else if(r==="PERDIO")perdidos++;
+   else if(r==="EMPATE")empates++;
+ });
+ return {ganados,perdidos,empates};
+}
+function allInPlayerWL(idx){
+ const s=allInPlayerStats(idx);
+ return {ganados:s.ganados,perdidos:s.perdidos};
+}
+function downloadAllInStats(){
+ const total=allInEvents.length;
+ allInEvents.forEach(e=>{e.payers=[...new Set((e.payers||[]).filter(i=>i!==e.playerIndex))];});
+ const paidEvents=allInEvents.filter(e=>e.payers.length>0).length;
+ const payerTotal=allInEvents.reduce((n,e)=>n+e.payers.length,0);
+ const avg=total?(payerTotal/total).toFixed(2):"0.00";
+ const pctPaid=pct(paidEvents,total);
+ const dist={};
+ allInEvents.forEach(e=>{const n=e.payers.length;dist[n]=(dist[n]||0)+1});
+ let out="=== ALL-INS · POKER NL25 6-MAX ===\n";
+ out+="Manos simuladas: "+totalHands+"\n";
+ out+="ALL-INS TOTALES: "+total+"\n";
+ out+="ALL-INS CON AL MENOS UN PAGO: "+paidEvents+"\n";
+ out+="% ALL-INS CON AL MENOS UN PAGO: "+pctPaid+"%\n";
+ out+="PAGOS TOTALES: "+payerTotal+"\n";
+ out+="PROMEDIO PAGADORES POR ALL-IN: "+avg+"\n";
+ const tieEvents=allInEvents.filter(e=>e.result==="EMPATE").length;
+ out+="ALL-INS CON EMPATE: "+tieEvents+"\n\n";
+ out+="-- PAGADORES POR ALL-IN --\n";
+ Object.keys(dist).map(Number).sort((a,b)=>a-b).forEach(n=>{out+=n+" pagador(es): "+dist[n]+" ALL-IN(s)\n"});
+ if(!Object.keys(dist).length)out+="Sin ALL-INS registrados.\n";
+ out+="\n-- RESUMEN POR JUGADOR --\n";
+ ps.forEach((p,i)=>{
+   const made=allInEvents.filter(e=>e.playerIndex===i).length;
+   const madePaid=allInEvents.filter(e=>e.playerIndex===i && e.payers.length>0).length;
+   const noPay=allInEvents.filter(e=>e.playerIndex===i && e.payers.length===0).length;
+   const paid=allInEvents.filter(e=>e.payers.includes(i)).length;
+   out+=p.name+(p.bot?" · BOT":" · VOS")+"\n";
+   out+="  ALL-INS HECHOS: "+made+" · CON PAGO: "+madePaid+" · SIN PAGO: "+noPay+"\n";
+   out+="  ALL-INS PAGADOS: "+paid+"\n";
+   const ast=allInPlayerStats(i);
+   out+="  ALL-INS GANADOS: "+ast.ganados+"\n";
+   out+="  ALL-INS PERDIDOS: "+ast.perdidos+"\n";
+   out+="  ALL-INS EMPATADOS: "+ast.empates+"\n\n";
+ });
+ out+="-- DETALLE ALL-IN POR ALL-IN --\n";
+ if(!allInEvents.length) out+="Sin ALL-INS registrados.\n";
+ allInEvents.forEach(e=>{
+   const payers=e.payers.map(i=>ps[i]?.name||"?");
+   out+="ALL-IN #"+e.id+" · MANO "+e.hand+" · "+e.playerName+" · "+e.playerType+" · "+(["PREFLOP","FLOP","TURN","RIVER"][e.street]||"?")+" · ACCION: "+e.action+" · TOTAL APOSTADO: "+M(e.amountTotal)+"\n";
+   out+="  PAGADORES: "+payers.length+" · "+(payers.length?payers.join(", "):"NINGUNO")+"\n";
+   out+="  RESULTADO: "+e.result+"\n\n";
+ });
+ downloadTxt("Poker_NL25_ALL_IN.txt",out);
+}
+function playerStatsText(p, label){
+ let out="=== "+label+" ===\n";
+ out+="CAPITAL ACTUAL: "+M(p.stack)+"\n";
+ out+="RECARGAS: "+(p.recargas||0)+"\n";
+ out+="GUARDAS: "+(p.guardas||0)+"\n";
+ const idx=ps.indexOf(p); const ast=allInPlayerStats(idx);
+ out+="ALL-INS GANADOS: "+ast.ganados+"\n";
+ out+="ALL-INS PERDIDOS: "+ast.perdidos+"\n";
+ out+="ALL-INS EMPATADOS: "+ast.empates+"\n\n";
+ out+="-- PREFLOP --\n";
+ out+="Oportunidades: "+(p.pfOpp||0)+"\n";
+ out+="VPIP real: "+pct(p.pfVPIP,p.pfOpp)+"%\n";
+ out+="PFR real: "+pct(p.pfPFR,p.pfOpp)+"%\n";
+ out+="3-BET oportunidades: "+(p.pf3betOpp||0)+"\n";
+ out+="3-BET real: "+pct(p.pf3bet,p.pf3betOpp)+"%\n";
+ out+="FOLD PREFLOP: "+pct(p.pfFold,p.pfOpp)+"%\n\n";
+ out+="-- POSTFLOP --\n";
+ out+="Acciones: "+(p.postOpp||0)+"\n";
+ out+="BET: "+pct(p.postBet,p.postOpp)+"%\n";
+ out+="CALL: "+pct(p.postCall,p.postOpp)+"%\n";
+ out+="RAISE: "+pct(p.postRaise,p.postOpp)+"%\n";
+ out+="RE-RAISE: "+pct(p.postReraise,p.postOpp)+"%\n";
+ out+="CHECK: "+pct(p.postCheck,p.postOpp)+"%\n";
+ out+="FOLD: "+pct(p.postFold,p.postOpp)+"%\n";
+ out+="SHOWDOWNS: "+(p.showdowns||0)+"\n";
+ out+="SHOWDOWNS GANADOS: "+(p.wonShowdowns||0)+"\n";
+ return out;
+}
+function downloadTxt(filename, out){
+ try{
+   const blob=new Blob([String(out)],{type:"text/plain;charset=utf-8"});
+   const url=URL.createObjectURL(blob);
+   const a=document.createElement("a");
+   a.href=url; a.download=filename; a.style.display="none";
+   document.body.appendChild(a);
+   a.click();
+   setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},1000);
+ }catch(err){
+   console.error("Error de exportación:",err);
+   try{
+     const a=document.createElement("a");
+     a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(String(out));
+     a.download=filename; a.style.display="none";
+     document.body.appendChild(a); a.click();
+     setTimeout(()=>a.remove(),1000);
+   }catch(err2){
+     console.error("Fallback de exportación también falló:",err2);
+     alert("No se pudo generar el archivo "+filename);
+   }
+ }
+}
+function downloadMyStats(){
+ let out="=== MIS ESTADISTICAS · POKER NL25 6-MAX ===\n";
+ out+="Manos simuladas: "+totalHands+"\nManos VOS: "+participatedHands+"\nVPIP: "+pct(ps[0].pfVPIP,ps[0].pfOpp)+"%\nPFR: "+pct(ps[0].pfPFR,ps[0].pfOpp)+"%\nFOLD PREFLOP: "+pct(ps[0].pfFold,ps[0].pfOpp)+"%\n\n";
+ out+=playerStatsText(ps[0],"VOS");
+ downloadTxt("Poker_NL25_Mis_Estadisticas.txt",out);
+}
+function downloadBotStats(){
+ let out="=== ESTADISTICAS DE LOS BOTS · POKER NL25 6-MAX ===\n";
+ out+="Manos simuladas: "+totalHands+"\n\n";
+ ps.slice(1).forEach((p,i)=>{
+   const perfiles=["TIGHT","LOOSE","AGRO","PASSIVE","BALANCED"];
+   out+=playerStatsText(p,p.name+" · "+perfiles[i])+"\n";
+ });
+ downloadTxt("Poker_NL25_Estadisticas_Bots.txt",out);
+}
+
+function put(p,n){n=Math.max(0,Math.min(n,p.stack));p.stack-=n;p.bet+=n;p.total=(p.total||0)+n;pot+=n;if(street===1&&n>0)flopHadBet=true;if(p.bet>highest)highest=p.bet}
+function betTo(p,target){target=Math.max(p.bet,target);target=Math.min(p.bet+p.stack,target);const add=Math.max(0,target-p.bet);if(add>0)put(p,add);return p.bet}
+function legalRaiseTo(p,target){
+ const before=highest;
+ target=Math.max(target,before+Math.max(lastRaiseSize,.25));
+ target=Math.min(p.bet+p.stack,target);
+ if(target<=before)return false;
+ const old=highest;
+ betTo(p,target);
+ lastRaiseSize=highest-old;
+
+ return true;
+}
+function active(){return ps.filter(p=>!p.fold)}
+function renderLeaderboard(){
+ const box=document.getElementById("leaderboard");
+ if(!box)return;
+ const ranking=ps.map(p=>({p,total:(p.stack||0)+(p.guardas||0)*50-(p.recargas||0)*25})).sort((a,b)=>b.total-a.total);
+ box.innerHTML='<h3>🏆 POSICIONES POR CAPITAL TOTAL</h3>'+ranking.map((x,i)=>`<div class="rankrow"><span class="ranknum">${i+1}º</span><span class="rankname"><b>${x.p.name}</b><div class="ranksub">Stack ${M(x.p.stack)} · G ${x.p.guardas||0} · R ${x.p.recargas||0}</div></span><span class="ranktotal">${M(x.total)}</span></div>`).join('')+'<div class="ranklegend">Capital total = Stack actual + Guardas ($50 c/u) − Recargas ($25 c/u).</div>';
+}
+function renderAllInLeaderboard(){
+ const box=document.getElementById("allinLeaderboard");
+ if(!box)return;
+ const ranking=ps.map(p=>({p,ef:(p.allinGanados||0)-(p.allinPerdidos||0)})).sort((a,b)=>b.ef-a.ef || (b.p.allinGanados-a.p.allinGanados));
+ box.innerHTML='<h3>🔥 POSICIONES POR ALL-INS</h3>'+ranking.map((x,i)=>`<div class="allinrow"><span class="ranknum">${i+1}º</span><span class="rankname"><b>${x.p.name}</b><div class="allinsub">Ganados: ${x.p.allinGanados||0} · Perdidos: ${x.p.allinPerdidos||0}</div></span><span class="allinscore">${x.ef>0?"+":""}${x.ef}</span></div>`).join('')+'<div class="ranklegend">Efectividad = ALL-INS ganados − ALL-INS perdidos. Los empates no suman ni restan.</div>';
+}
+function render(){
+ renderLeaderboard();
+ renderAllInLeaderboard();
+ const table=document.getElementById("table");table.querySelectorAll(".player").forEach(x=>x.remove());
+ ps.forEach((p,i)=>{
+  let d=document.createElement("div");d.className="player p"+i+(i==0?" me":"")+(i==current&&!over?" active":"")+(p.winner?" winner":"");
+  let stats=`<div style="font-size:9px;color:#b9d7e5;margin-bottom:2px">VPIP ${p.vpip}% · PFR ${p.pfr}% · 3-BET ${p.three}%</div>`;
+  let cs=i==0?p.hand.map(x=>cardHTML(x,false)).join(" "):(p.hand.length?(p.fold?"FOLD":(p.reveal?p.hand.map(x=>cardHTML(x,false)).join(" "):cardHTML("",true)+" "+cardHTML("",true))):"");
+  let role="";
+  const rel=(i-dealer+6)%6;
+  if(rel===0) role='<span style="color:#ffd34d;font-weight:bold"> BTN/D</span>';
+  else if(rel===1) role='<span style="color:#6ee7ff;font-weight:bold"> SB</span>';
+  else if(rel===2) role='<span style="color:#ffd34d;font-weight:bold"> BB</span>';
+  else if(rel===3) role='<span style="color:#fff;font-weight:bold"> UTG</span>';
+  else if(rel===4) role='<span style="color:#fff;font-weight:bold"> MP</span>';
+  else if(rel===5) role='<span style="color:#fff;font-weight:bold"> CO</span>';
+  d.innerHTML=stats+`<b>${p.name}</b>${role}<br><span style="font-size:9px;color:#ffd34d">RECARGAS: <b>${p.recargas||0}</b> · GUARDAS: <b>${p.guardas||0}</b></span>${p.winner?' <span class="winmark">🏆 GANADOR</span>':""}<br>${cs}<hr style="border:0;border-top:1px solid #68757c;margin:4px 0"><span>Stack: <b>${M(p.stack)}</b></span><br><span style="color:#ffd34d">Apostado mano: <b>${M(p.total||0)}</b></span>${p.lastAction?`<br><span style="color:#9fe3ff">Acción: <b>${p.lastAction}</b></span>`:""}`;
+  table.appendChild(d);
+ });
+ document.getElementById("pot").textContent="POT "+M(pot);
+  document.getElementById("totalHands").textContent=totalHands;
+  document.getElementById("participatedHands").textContent=participatedHands;
+  document.getElementById("sessionBankroll").textContent=M(ps[0]?.stack||0);
+ document.getElementById("board").innerHTML=board.map(x=>cardHTML(x,false)).join("");
+ const myTurn=current===0&&!over&&!ps[0].fold&&!ps[0].allin;
+ const need=Math.max(0,highest-ps[0].bet);
+ const canCheck=myTurn && need===0;
+ const canCall=myTurn && need>0 && ps[0].stack>0;
+ const canBet=myTurn && ps[0].stack>0;
+ document.getElementById("fold").disabled=!myTurn;
+ document.getElementById("check").disabled=!canCheck;
+ document.getElementById("call").disabled=!canCall;
+ document.getElementById("raise").disabled=!canBet;
+ document.getElementById("allin").disabled=!canBet;
+ document.getElementById("check").textContent="CHECK";
+ document.getElementById("call").textContent=canCall?"CALL "+M(need):"CALL";
+ document.getElementById("raise").textContent=highest>0?"RAISE":"BET";
+ document.getElementById("msg").textContent=over?"Mano terminada":myTurn?"TU TURNO — "+(["PREFLOP","FLOP","TURN","RIVER"][street]):"Turno de "+ps[current].name;
+}
+function quick(x){document.getElementById("amount").value=x}
+function newHand(){
+ if(!ps.length)setup(); else {dealer=(dealer+1)%6}
+ hand++;
+  totalHands++;
+  heroInHand=false; currentHandLog=[];
+  fresh();board=[];pot=0;highest=0;street=0;over=false;initiative=-1;heroRaisedStreet=false;flopHadBet=false;lastRaiseSize=.25;roundActions=0;preflopRaiseCount=0;
+ ps.forEach(p=>{p.hand=[];p.bet=0;p.total=0;p.lastAction="";p.fold=false;p.allin=false;p.winner=false;p.reveal=false;p._pfOppCounted=false;p._pfVPIPCounted=false;p._pfPFRCounted=false;p._pf3BetCounted=false;p._pf3BetOppCounted=false;p._pfFoldCounted=false});
+ for(let r=0;r<2;r++)ps.forEach(p=>p.hand.push(card()));
+ let sb=(dealer+1)%6,bb=(dealer+2)%6;put(ps[sb],.10);put(ps[bb],.25);
+ current=(dealer+3)%6;acted=new Set();say("<b>MANO "+hand+"</b> · Dealer: "+ps[dealer].name+" · Sentido horario ↻");
+ render();if(current!==0)botLoop();
+}
+
+function human(a){
+ if(current!==0||over)return;
+ let p=ps[0],need=Math.max(0,highest-p.bet),beforeStack=p.stack;
+ const wasFacingPostflop=need>0;
+ const facedPreflop=street===0 && highest>0.25+1e-9;
+ if(street===0 && !p._pfOppCounted){
+   p.pfOpp=(p.pfOpp||0)+1;
+   p._pfOppCounted=true;
+   if(facedPreflop) p.pf3betOpp=(p.pf3betOpp||0)+1;
+ }
+ if(a!=="fold" && !heroInHand){
+   heroInHand=true;
+   participatedHands++;
+   myHandsLog.push("=== HAND "+hand+" ===\n"+currentHandLog.join("\n"));
+   currentHandLog=[];
+ }
+ if(a==="fold"){
+   p.fold=true;
+   p.lastAction="FOLD";
+   acted.add(0);
+   recordAction(0,street,"FOLD",wasFacingPostflop);
+   say("Vos: FOLD");
+   registerAllInAfterAction(0,a,street,beforeStack);
+   advance();
+   return;
+ }
+ if(a==="check"){
+   if(need)return;
+   acted.add(0);
+   p.lastAction="CHECK";
+   recordAction(0,street,"CHECK",false);
+   say("Vos: CHECK");
+ }else if(a==="call"){
+   put(p,need);
+   if(p.stack<=0)p.allin=true;
+   acted.add(0);
+   p.lastAction="CALL";
+   recordAction(0,street,"CALL",wasFacingPostflop);
+   say("Vos: CALL "+M(need));
+ }else if(a==="raise"){
+   let target=parseFloat(document.getElementById("amount").value)||.75;
+   target=Math.max(target,highest+.25);
+   put(p,target-p.bet);
+   if(street===0 && p.bet>0.25)preflopRaiseCount++;
+   initiative=0;
+   heroRaisedStreet=true;
+   acted=new Set([0]);
+   p.lastAction="RAISE";
+   recordAction(0,street,"RAISE",wasFacingPostflop);
+   say("Vos: RAISE a "+M(target));
+ }else if(a==="allin"){
+   let wasRaise=p.stack+p.bet>highest;
+   put(p,p.stack);
+   if(wasRaise){initiative=0;heroRaisedStreet=true;}
+   p.allin=true;
+   acted.add(0);
+   p.lastAction="ALL-IN";
+   if(p.bet>highest)acted=new Set([0]);
+   recordAction(0,street,"ALL-IN",wasFacingPostflop);
+   say("Vos: ALL-IN");
+ }
+ registerAllInAfterAction(0,a,street,beforeStack);
+ advance();
+}
+function handKey(p){
+ const a=val(p.hand[0]),b=val(p.hand[1]);
+ const hi=Math.max(a,b),lo=Math.min(a,b),suited=p.hand[0][1]===p.hand[1][1];
+ const rank=n=>({14:"A",13:"K",12:"Q",11:"J",10:"T"}[n]||String(n));
+ if(hi===lo)return rank(hi)+rank(lo);
+ return rank(hi)+rank(lo)+(suited?"s":"o");
+}
+function botPos(idx){
+ return ["BTN","SB","BB","UTG","MP","CO"][(idx-dealer+6)%6];
+}
+function expandRange(parts){
+ const s=new Set();
+ const order={A:14,K:13,Q:12,J:11,T:10,9:9,8:8,7:7,6:6,5:5,4:4,3:3,2:2};
+ const rank=v=>({14:"A",13:"K",12:"Q",11:"J",10:"T"}[v]||String(v));
+ for(const x of parts){
+  if(x.endsWith("+")){
+   const core=x.slice(0,-1);
+   if(core.length===2 && core[0]===core[1]){
+    const n=order[core[0]]; for(let v=n;v<=14;v++)s.add(rank(v)+rank(v));
+   }else if(core.length===3 && (core[2]==="s"||core[2]==="o")){
+    const hi=order[core[0]], start=order[core[1]], type=core[2];
+    if(hi && start && hi>start) for(let lo=start;lo<hi;lo++)s.add(rank(hi)+rank(lo)+type);
+   }
+  }else s.add(x);
+ }
+ return [...s];
+}
+function hasCombo(k,arr){return arr.indexOf(k)>=0}
+
+function bot(){
+ let p=ps[current],need=Math.max(0,highest-p.bet),style=p.style,idx=current;
+ const pos=botPos(idx), key=handKey(p);
+ // Las ciegas no cuentan como OPEN: solo hay raise previo si highest supera BB ($0.25).
+ const faced=highest>0.25+1e-9;
+ // Oportunidad preflop real: el bot llegó efectivamente a su turno y puede decidir.
+ if(street===0){
+   p.pfOpp=(p.pfOpp||0)+1;
+   if(faced) p.pf3betOpp=(p.pf3betOpp||0)+1;
+ }
+
+
+
+ // PREFLOP V3.35 — separación real VPIP / PFR.
+ // VPIP: define el universo de manos con el que el bot está dispuesto a participar.
+ // PFR: define qué parte de ese universo abre cuando no existe raise previo.
+ // 3-BET: decisión independiente frente a un único OPEN.
+ // Nunca se permite 4-BET/5-BET automático.
+ const vpipRanges={
+  1:{UTG:["55+","A7s+","A9o+","K9s+","KJo+","Q9s+","QJo","J9s+","JTo","T9s","98s","87s"],MP:["33+","A5s+","A8o+","K7s+","KTo+","Q8s+","QTo+","J8s+","JTo","T8s+","98s","87s","76s","65s"],CO:["22+","A2s+","A5o+","K4s+","K8o+","Q6s+","Q9o+","J6s+","J9o+","T6s+","T9o","96s+","97o+","86s+","87o","75s+","76o","65s","54s","43s"],BTN:["22+","A2s+","A2o+","K2s+","K4o+","Q2s+","Q6o+","J2s+","J6o+","T2s+","T6o+","92s+","95o+","82s+","85o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],SB:["22+","A2s+","A2o+","K2s+","K5o+","Q2s+","Q7o+","J2s+","J7o+","T2s+","T7o+","92s+","96o+","82s+","86o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"]},
+  2:{UTG:["44+","A5s+","A8o+","K8s+","KTo+","Q8s+","QTo+","J8s+","JTo","T8s+","98s","87s","76s"],MP:["22+","A2s+","A7o+","K5s+","K8o+","Q7s+","Q9o+","J7s+","J9o+","T7s+","T9o","97s+","86s+","75s+","64s+","54s"],CO:["22+","A2s+","A2o+","K2s+","K5o+","Q2s+","Q7o+","J2s+","J7o+","T2s+","T7o+","92s+","96o+","82s+","86o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],BTN:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q4o+","J2s+","J5o+","T2s+","T5o+","92s+","95o+","82s+","85o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],SB:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q5o+","J2s+","J6o+","T2s+","T6o+","92s+","95o+","82s+","85o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"]},
+  3:{UTG:["33+","A4s+","A7o+","K7s+","K9o+","Q7s+","Q9o+","J7s+","J9o+","T7s+","T9o","97s+","86s","76s"],MP:["22+","A2s+","A5o+","K4s+","K8o+","Q5s+","Q8o+","J6s+","J8o+","T6s+","T8o+","96s+","97o+","85s+","87o","75s+","76o","65s","54s"],CO:["22+","A2s+","A2o+","K2s+","K4o+","Q2s+","Q5o+","J2s+","J6o+","T2s+","T6o+","92s+","95o+","82s+","85o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],BTN:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J4o+","T2s+","T4o+","92s+","94o+","82s+","84o+","72s+","74o+","62s+","64o+","52s+","54o+","42s+","43o","32s"],SB:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J4o+","T2s+","T5o+","92s+","94o+","82s+","84o+","72s+","74o+","62s+","64o+","52s+","54o+","42s+","43o","32s"]},
+  4:{UTG:["33+","A5s+","A8o+","K8s+","KTo+","Q8s+","QTo+","J8s+","JTo","T8s+","98s","87s"],MP:["22+","A2s+","A6o+","K5s+","K8o+","Q6s+","Q9o+","J6s+","J9o+","T6s+","T9o","96s+","97o+","86s+","87o","75s+","76o","65s","54s"],CO:["22+","A2s+","A2o+","K2s+","K5o+","Q2s+","Q7o+","J2s+","J7o+","T2s+","T7o+","92s+","96o+","82s+","86o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],BTN:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q4o+","J2s+","J5o+","T2s+","T5o+","92s+","95o+","82s+","85o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],SB:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q4o+","J2s+","J5o+","T2s+","T5o+","92s+","95o+","82s+","86o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"]},
+  5:{UTG:["44+","A5s+","A8o+","K8s+","KTo+","Q8s+","QTo+","J8s+","JTo","T8s+","98s","87s"],MP:["22+","A2s+","A6o+","K5s+","K8o+","Q6s+","Q9o+","J6s+","J9o+","T6s+","T9o","96s+","97o+","86s+","87o","75s+","76o","65s","54s"],CO:["22+","A2s+","A2o+","K2s+","K5o+","Q2s+","Q7o+","J2s+","J7o+","T2s+","T7o+","92s+","96o+","82s+","86o+","72s+","75o+","62s+","65o+","52s+","54o+","42s+","43o","32s"],BTN:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J4o+","T2s+","T4o+","92s+","94o+","82s+","84o+","72s+","74o+","62s+","64o+","52s+","54o+","42s+","43o","32s"],SB:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J4o+","T2s+","T4o+","92s+","94o+","82s+","84o+","72s+","74o+","62s+","64o+","52s+","54o+","42s+","43o","32s"]}
+ }[style]||{};
+ const vpipRange=expandRange(vpipRanges[pos]||[]);
+ const openRates={1:1.00,2:1.00,3:1.00,4:1.00,5:1.00};
+ const openChance=openRates[style]||.6;
+ const three={1:["66+","ATs+","AJo+","KQs","KJs","QJs"],2:["55+","ATs+","AJo+","KQs","KJs","QJs","QTs","JTs","T9s"],3:["44+","A9s+","ATo+","K9s+","KJo+","Q9s+","QJo+","J9s+","JTo","T9s","98s"],4:["88+","ATs+","AJo+","KQs","KJs","QJs"],5:["66+","ATs+","A9s+","AJo+","KTs+","KJo+","QTs+","QJo+","JTs"]}[style]||[];
+ const threeRange=expandRange(three);
+ const threeChance={1:.78,2:.88,3:.92,4:.55,5:.82}[style];
+
+ if(!faced){
+   if(pos==="BB"){p.lastAction="CHECK";acted.add(idx);return "CHECK";}
+   // El universo VPIP no cambia. Dentro de él, una mano puede convertirse
+   // en OPEN según la tasa PFR del perfil. Si no abre, foldea cuando no hay raise.
+   if(hasCombo(key,vpipRange) && Math.random()<openChance){
+     const target=.50;
+     betTo(p,Math.min(target,p.bet+p.stack));
+     if(p.stack<=0)p.allin=true;
+     preflopRaiseCount++;
+     p.lastAction="OPEN 2X";acted=new Set([idx]);return "OPEN 2X";
+   }
+   p.lastAction="FOLD";p.fold=true;acted.add(idx);return "FOLD";
+ }
+
+ // Frente a un OPEN: 3-BET independiente. Una vez hecho el 3-BET,
+ // ningún bot puede volver a subir preflop automáticamente.
+ if(preflopRaiseCount===1 && hasCombo(key,threeRange) && Math.random()<threeChance){
+   const target=Math.max(highest+.25,highest*2.5);
+   if(legalRaiseTo(p,target)){preflopRaiseCount++;p.lastAction="3-BET";acted=new Set([idx]);return "3-BET "+M(p.bet);}
+ }
+
+ // AJUSTE PFR V3.40:
+ // No se modifica el universo VPIP. Algunas manos que ya estaban dentro del
+ // rango de participación y que antes iban a CALL frente a un OPEN pasan a
+ // 3-BET con una probabilidad moderada. Esto eleva PFR sin ampliar VPIP.
+ const pfrBoost={1:.18,2:.32,3:.30,4:.18,5:.22}[style]||0;
+ const canPfrBoost=(preflopRaiseCount===1 &&
+   hasCombo(key,vpipRange) &&
+   !hasCombo(key,threeRange) &&
+   Math.random()<pfrBoost);
+ if(canPfrBoost){
+   const target=Math.max(highest+.25,highest*2.5);
+   if(legalRaiseTo(p,target)){
+     preflopRaiseCount++;
+     p.lastAction="3-BET";
+     acted=new Set([idx]);
+     return "3-BET "+M(p.bet);
+   }
+ }
+
+ // CALL = segunda vía del VPIP. Esto permite mantener VPIP por encima del PFR
+ // sin ampliar el universo VPIP. El rango de call conserva los perfiles previos.
+ const calls={
+  1:["22+","A2s+","A7o+","K4s+","K9o+","Q6s+","Q9o+","J7s+","J9o+","T7s+","T9o","97s+","86s+","75s+","64s+","54s","43s","53s"],
+  2:["22+","A2s+","A8o+","K5s+","K9o+","Q7s+","QTo+","J8s+","JTo","T8s+","98s","87s","76s","65s","54s"],
+  3:["22+","A2s+","A8o+","K4s+","K8o+","Q6s+","Q9o+","J7s+","J9o+","T7s+","T9o","97s+","86s+","75s+","64s+","54s"],
+  4:["22+","A2s+","A5o+","K2s+","K8o+","Q4s+","Q8o+","J5s+","J8o+","T5s+","T8o+","95s+","97o+","85s+","87o","74s+","76o","64s+","65o","53s+","54o","43s","32s"],
+  5:["22+","A2s+","A5o+","K4s+","K8o+","Q5s+","Q8o+","J6s+","J8o+","T6s+","T8o+","96s+","97o+","85s+","87o","74s+","76o","64s+","65o","53s+","54o","43s","32s"]
+ }[style]||[];
+ const callBoost={1:["A5s","A4s","K8s","K9o","Q9s","J9s"],2:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J2o+","T2s+","T2o+","92s+","92o+","82s+","82o+","72s+","72o+","62s+","62o+","52s+","52o+","42s+","42o+","32s","32o"],3:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J2o+","T2s+","T2o+","92s+","92o+","82s+","82o+","72s+","72o+","62s+","62o+","52s+","52o+","42s+","42o+","32s","32o"],4:["22+","A2s+","A2o+","K2s+","K2o+","Q2s+","Q2o+","J2s+","J2o+","T2s+","T2o+","92s+","92o+","82s+","82o+","72s+","72o+","62s+","62o+","52s+","52o+","42s+","42o+","32s","32o"]}[style]||[];
+ const callRange=expandRange(calls.concat(callBoost));
+ const callChance={1:.86,2:.92,3:.82,4:.94,5:.88}[style];
+
+ // CONTROL ALL-IN V3.43:
+ // El perfil Loose/LAG mantiene su rango normal de participación, pero pagar
+ // un ALL-IN completo exige un rango más fuerte. No modifica VPIP/PFR/3-BET.
+ if(need>0 && need>=p.stack && p.stack>0){
+   const allInCallRanges={
+     1:["99+","AQs+","AKo"],
+     2:["99+","AQs+","AKo"],
+     3:["77+","AJs+","AQo+","KQs"],
+     4:["TT+","AQs+","AKo"],
+     5:["99+","AQs+","AKo"]
+   }[style]||["99+","AQs+","AKo"];
+   const allInCallRange=expandRange(allInCallRanges);
+   if(faced && hasCombo(key,allInCallRange)){
+     put(p,need);
+     p.allin=true;
+     p.lastAction="CALL ALL-IN";
+     acted.add(idx);
+     return "CALL ALL-IN";
+   }
+   p.fold=true;
+   p.lastAction="FOLD ALL-IN";
+   acted.add(idx);
+   return "FOLD ALL-IN";
+ }
+ if(hasCombo(key,callRange)&&Math.random()<callChance){
+   put(p,need);if(p.stack<=0)p.allin=true;p.lastAction="CALL";acted.add(idx);return "CALL "+M(need);
+ }
+ p.fold=true;p.lastAction="FOLD";acted.add(idx);return "FOLD";
+}
+function roundComplete(){
+ const live=ps.filter(p=>!p.fold);
+ const decision=live.filter(p=>!p.allin);
+ if(live.length<=1)return true;
+ if(decision.length===0)return true;
+ // Una calle termina solo cuando todos los jugadores que aún pueden actuar
+ // ya actuaron y están igualados a la apuesta máxima.
+ return decision.every(p=>acted.has(ps.indexOf(p)) && p.bet===highest);
+}
+
+function runoutToShowdown(){
+  if(over)return;
+  if(street<3){
+    ps.forEach(p=>p.bet=0); highest=0; acted=new Set(); heroRaisedStreet=false; lastRaiseSize=.25; roundActions=0;
+    if(street===0){ board.push(card(),card(),card()); street=1; say("<b>FLOP</b> "+board.join(" ")+" · TODOS ALL-IN"); }
+    else if(street===1){ board.push(card()); street=2; say("<b>TURN</b> "+board[3]+" · TODOS ALL-IN"); }
+    else if(street===2){ board.push(card()); street=3; say("<b>RIVER</b> "+board[4]+" · TODOS ALL-IN"); }
+    render(); setTimeout(runoutToShowdown,180); return;
+  }
+  finish();
+}
+function advance(){
+ if(over)return;
+ if(roundActions>200){say("<b>ERROR DE SEGURIDAD:</b> calle detenida por exceso de acciones");finish();return;}
+ roundActions++;
+ if(active().length<=1){finish();return}
+ if(active().filter(p=>!p.allin).length===0){ runoutToShowdown(); return; }
+ if(roundComplete()){
+   nextStreet();
+   return;
+ }
+ let safety=0;
+ do{
+   current=(current+1)%6;
+   safety++;
+ }while((ps[current].fold||ps[current].allin||acted.has(current))&&safety<7);
+
+ // If all players have acted, the round must be complete unless a raise
+ // occurred; in that case continue from the first player needing action.
+ if(roundComplete()){nextStreet();return}
+ render();
+ if(current===0){
+    // VOS juega manualmente. La ejecución queda detenida hasta pulsar un botón.
+    return;
+  }else{
+    setTimeout(botLoop,350);
+  }
+}
+
+function nextStreet(){
+  ps.forEach(p=>p.bet=0); highest=0; acted=new Set(); heroRaisedStreet=false; lastRaiseSize=.25; roundActions=0;
+  if(street===0){
+    board.push(card(),card(),card());street=1;preflopRaiseCount=0;say("<b>FLOP</b> "+board.join(" "));
+  }
+  else if(street===1){board.push(card());street=2;say("<b>TURN</b> "+board[3]);}
+  else if(street===2){board.push(card());street=3;say("<b>RIVER</b> "+board[4]);}
+  else{finish();return}
+  if(active().filter(p=>!p.allin).length===0){ render(); setTimeout(runoutToShowdown,180); return; }
+  current=(dealer+1)%6;
+  let safety=0; while((ps[current].fold||ps[current].allin)&&safety<7){current=(current+1)%6;safety++}
+  render();
+  if(ps[current].allin){ setTimeout(advance,150); return; }
+  if(current===0){
+    // VOS juega manualmente. Esperar su decisión.
+    return;
+  }else setTimeout(botLoop,350);
+}
+
+function postInfo(){
+  const cards=ps[0].hand.concat(board),sc=score(cards),cat=sc[0],top=Math.max(...board.map(val),0);
+  let topPairPlus=cat>=2;
+  if(cat===1)topPairPlus=sc[1]>=top;
+
+  let straightDraw=false;
+  const uniq=[...new Set(cards.map(val))];
+  if(uniq.includes(14))uniq.push(1);
+  for(let hi=14;hi>=5;hi--){
+    let have=0;for(let r=hi;r>=hi-4;r--)if(uniq.includes(r))have++;
+    if(have>=3&&cat<4){straightDraw=true;break}
+  }
+
+  const suitCnt={};cards.forEach(c=>suitCnt[c[1]]=(suitCnt[c[1]]||0)+1);
+  const flushDraw=Object.values(suitCnt).some(n=>n>=4)&&cat<5;
+  return {cat,topPairPlus,straightDraw,flushDraw};
+}
+
+function isReRaise(){return heroRaisedStreet&&highest>ps[0].bet}
+
+function botHandInfo(p){
+ const cards=p.hand.concat(board),sc=score(cards),cat=sc[0],top=Math.max(...board.map(val),0);
+ let topPairPlus=cat>=2;
+ if(cat===1)topPairPlus=sc[1]>=top;
+ let straightDraw=false;
+ const uniq=[...new Set(cards.map(val))]; if(uniq.includes(14))uniq.push(1);
+ for(let hi=14;hi>=5;hi--){let have=0;for(let r=hi;r>=hi-4;r--)if(uniq.includes(r))have++;if(have>=4&&cat<4){straightDraw=true;break}}
+ const suitCnt={};cards.forEach(c=>suitCnt[c[1]]=(suitCnt[c[1]]||0)+1);
+ const flushDraw=Object.values(suitCnt).some(n=>n>=4)&&cat<5;
+ return {cat,topPairPlus,straightDraw,flushDraw,strongDraw:straightDraw||flushDraw};
+}
+
+function botPostflop(){
+ let p=ps[current],idx=current,need=Math.max(0,highest-p.bet),noBet=highest===0,info=botHandInfo(p),style=p.style;
+ // Perfil postflop independiente del preflop.
+ // bet = frecuencia con mano/draw; bluff = farol; raise = frecuencia con mano fuerte;
+ // callDraw = tolerancia para pagar con proyectos.
+ const cfg={
+   1:{bet:.42,bluff:.025,raise:.12,callDraw:.48},   // Tight
+   2:{bet:.50,bluff:.10, raise:.15,callDraw:.72},   // Loose
+   3:{bet:.68,bluff:.16, raise:.32,callDraw:.62},   // Agro
+   4:{bet:.28,bluff:.015,raise:.05,callDraw:.78},   // Passive
+   5:{bet:.52,bluff:.06, raise:.20,callDraw:.60}    // Balanced
+ }[style]||{bet:.5,bluff:.05,raise:.16,callDraw:.6};
+ const monster=info.cat>=3;              // trío+
+ const strong=info.cat>=2||info.topPairPlus; // top pair / doble par+
+ const draw=info.strongDraw;
+
+ if(noBet){
+   let wantsBet=(strong&&Math.random()<cfg.bet)||(draw&&Math.random()<cfg.bet*.65)||Math.random()<cfg.bluff;
+   if(wantsBet){
+     const target=Math.min(p.bet+p.stack,Math.max(.25,pot*.5));
+     betTo(p,target);if(p.stack<=0)p.allin=true;p.lastAction="BET 1/2 POT";acted=new Set([idx]);initiative=idx;return "BET "+M(p.bet);
+   }
+   p.lastAction="CHECK";acted.add(idx);return "CHECK";
+ }
+
+ // Raise sólo con mano real fuerte. Nunca por strength() aleatorio.
+ // El bot puede volver a raisear en la misma calle según su perfil y la situación. Tamaño ~2x la apuesta vigente.
+ if((monster || info.cat>=2) && Math.random()<cfg.raise){
+   const target=Math.max(highest+.25,highest*2);
+   if(legalRaiseTo(p,target) ){p.lastAction="RAISE 2X";acted=new Set([idx]);return "RAISE "+M(p.bet)}
+ }
+ const opponentAllIn=ps.some((q,i)=>i!==idx && !q.fold && q.allin && q.bet>=highest-.001);
+ const priceRatio=pot>0?need/pot:1;
+ if(need>=p.stack && p.stack>0){
+   // V3.43: pagar un ALL-IN postflop depende también del capital que se compromete.
+   // Loose es más selectivo; LAG conserva algo más de tolerancia.
+   if(opponentAllIn){
+     const commit=need/p.stack;
+     let canCallAllIn=false;
+     if(style===2){
+       canCallAllIn = info.cat>=3 || (info.cat>=2 && commit<.45) || (draw && priceRatio<=.25 && commit<.40);
+     }else if(style===3){
+       canCallAllIn = info.cat>=3 || (info.cat>=2 && commit<.55) || (draw && priceRatio<=.30 && commit<.45);
+     }else{
+       const minCat={1:4,4:3,5:3}[style]||3;
+       canCallAllIn = info.cat>=4 || info.cat>=minCat || (draw && info.cat>=1 && priceRatio<=.30 && (style===2 || style===3));
+     }
+     if(canCallAllIn){put(p,p.stack);p.allin=true;p.lastAction="CALL ALL-IN";acted.add(idx);return "CALL ALL-IN"}
+     p.fold=true;p.lastAction="FOLD ALL-IN";acted.add(idx);return "FOLD";
+   }
+   if(monster || (strong&&style===3)){put(p,p.stack);p.allin=true;p.lastAction="ALL-IN";acted.add(idx);return "ALL-IN"}
+   p.fold=true;p.lastAction="FOLD";acted.add(idx);return "FOLD";
+ }
+ // CALL más selectivo: cuanto mayor es el precio respecto del POT,
+ // más fuerte debe ser la mano. El perfil modifica la tolerancia, no la categoría mínima.
+ // V3.43: protección de compromiso de stack. No cambia el rango preflop.
+ // Si continuar consume mucho stack, Loose/LAG necesitan una mano más fuerte.
+ const stackCommit= p.stack>0 ? need/p.stack : 1;
+ if(style===2 && stackCommit>.45 && info.cat<2 && !draw){
+   p.fold=true;p.lastAction="FOLD: STACK COMMITMENT";acted.add(idx);return "FOLD";
+ }
+ if(style===2 && stackCommit>.60 && info.cat<3 && !(draw && priceRatio<=.25)){
+   p.fold=true;p.lastAction="FOLD: STACK COMMITMENT";acted.add(idx);return "FOLD";
+ }
+ if(style===3 && stackCommit>.55 && info.cat<2 && !(draw && priceRatio<=.30)){
+   p.fold=true;p.lastAction="FOLD: STACK COMMITMENT";acted.add(idx);return "FOLD";
+ }
+ let callMadeChance={1:.72,2:.62,3:.52,4:.68,5:.65}[style]||.62;
+ if(priceRatio>.35) callMadeChance-=.18;
+ if(priceRatio>.55) callMadeChance-=.22;
+ if(info.cat>=2) callMadeChance+=.12;
+ if(monster) callMadeChance=1;
+ // V3.42 PASSIVE: sigue siendo pasivo, pero evita pagar apuestas caras
+ // con manos marginales. La intención es eliminar "dinero gratis" sin
+ // convertirlo en un bot agresivo: conserva CALL con manos razonables y
+ // proyectos baratos, pero abandona pares débiles ante presión fuerte.
+ if(style===4 && priceRatio>.45 && info.cat<2 && !info.topPairPlus){
+   p.fold=true;p.lastAction="FOLD: PASSIVE PROTECTION";acted.add(idx);return "FOLD";
+ }
+ const madeCanCall=(strong && Math.random()<Math.max(.15,callMadeChance));
+ const drawCanCall=(draw && !strong && Math.random()<cfg.callDraw && priceRatio<=.40);
+ if(madeCanCall || drawCanCall){
+   put(p,need);if(p.stack<=0)p.allin=true;p.lastAction="CALL";acted.add(idx);return "CALL "+M(need);
+ }
+ // Los floats quedan reservados para Loose/Agro/Balanced y sólo frente a una apuesta pequeña.
+ const floatChance={1:.01,2:.07,3:.06,4:.02,5:.04}[style]||.03;
+ if(Math.random()<floatChance && priceRatio<=.25){
+   put(p,need);p.lastAction="CALL";acted.add(idx);return "CALL "+M(need);
+ }
+ p.fold=true;p.lastAction="FOLD";acted.add(idx);return "FOLD";
+}
+
+function botLoop(){
+  if(over)return;
+  if(ps[current].allin){ setTimeout(advance,150); return; }
+  if(current===0){
+    // Nunca ejecutar una estrategia automática para VOS.
+    return;
+  }
+  const beforeStack=ps[current].stack;
+  // V3.42: capturar si había una apuesta rival ANTES de ejecutar la acción.
+  // Si se calcula después, el raise ya igualó highest y RE-RAISE queda siempre en 0.
+  const wasFacing=highest>0 && ps[current].bet<highest;
+  let result=street===0?bot():botPostflop();
+  registerAllInAfterAction(current,result,street,beforeStack);
+  const actionName=(result||"").split(" ")[0];
+  recordAction(current,street,actionName,wasFacing);
+  say(ps[current].name+": "+result);
+  render();
+  setTimeout(advance,350)
+}
+
+function score(cards){
+ let cnt={};cards.forEach(c=>cnt[val(c)]=(cnt[val(c)]||0)+1);
+ let rs=cards.map(val).sort((a,b)=>b-a),uniq=[...new Set(rs)];if(uniq.includes(14))uniq.push(1);
+ let st=0;for(let i=0;i<=uniq.length-5;i++)if(uniq[i]-uniq[i+4]===4){st=uniq[i];break}
+ let sc={};for(const c of cards)sc[c[1]]=(sc[c[1]]||0)+1;let fs=Object.keys(sc).find(s=>sc[s]>=5);
+ if(fs){let f=cards.filter(c=>c[1]==fs).map(val).sort((a,b)=>b-a),u=[...new Set(f)];if(u.includes(14))u.push(1);for(let i=0;i<=u.length-5;i++)if(u[i]-u[i+4]===4)return [8,u[i]]}
+ let q=+Object.keys(cnt).find(x=>cnt[x]==4);if(q)return [7,q];
+ let tr=Object.keys(cnt).filter(x=>cnt[x]>=3).map(Number).sort((a,b)=>b-a),pa=Object.keys(cnt).filter(x=>cnt[x]>=2).map(Number).sort((a,b)=>b-a);
+ if(tr.length&&pa.some(x=>x!=tr[0]))return [6,tr[0],pa.find(x=>x!=tr[0])];
+ if(fs)return [5,...cards.filter(c=>c[1]==fs).map(val).sort((a,b)=>b-a).slice(0,5)];
+ if(st)return [4,st];
+ if(tr.length)return [3,tr[0],...rs.filter(x=>x!=tr[0]).slice(0,2)];
+ if(pa.length>=2)return [2,pa[0],pa[1]];
+ if(pa.length)return [1,pa[0],...rs.filter(x=>x!=pa[0]).slice(0,3)];
+ return [0,...rs.slice(0,5)];
+}
+function cmp(a,b){for(let i=0;i<Math.max(a.length,b.length);i++){let x=(a[i]||0)-(b[i]||0);if(x)return x}return 0}
+function finish(){
+ let alive=active(),best=null,w=[];
+ // En un showdown con al menos un pago, revelar las cartas de todos los jugadores que llegaron al final.
+ alive.forEach(p=>{p.reveal=true});
+ alive.forEach(p=>{let s=score(p.hand.concat(board));if(!best||cmp(s,best)>0){best=s;w=[p]}else if(cmp(s,best)==0)w.push(p)});
+ let gain=pot/w.length;w.forEach(p=>{p.stack+=gain;p.winner=true});
+ finalizeCurrentHandAllIns(w);
+ // Registrar el resultado de los ALL-INS de esta mano. Un empate no suma ni resta.
+ alive.forEach(p=>{p.showdowns=(p.showdowns||0)+1;if(w.includes(p))p.wonShowdowns=(p.wonShowdowns||0)+1;});
+ const nm=["carta alta","pareja","doble pareja","trío","escalera","color","full house","póker","escalera de color"];
+
+ // Gestión de capital: se procesa para TODOS los jugadores después de cobrar el bote.
+ // $0 o menos -> RECARGA +$25.
+ // >$75 -> GUARDA $50.
+ // No hay límite superior: $76, $100, $150, etc. también generan GUARDA.
+ const eventos=[];
+ ps.forEach(p=>{
+   const before=Number(p.stack)||0;
+   if(before<=0){
+     p.stack=25;
+     p.recargas=(Number(p.recargas)||0)+1;
+     p.lastAction="RECARGA +$25";
+     eventos.push({p,kind:"RECARGA",num:p.recargas,antes:before,despues:p.stack});
+   }else if(before>75){
+     p.stack=before-50;
+     p.guardas=(Number(p.guardas)||0)+1;
+     p.lastAction="GUARDA -$50";
+     eventos.push({p,kind:"GUARDA",num:p.guardas,antes:before,despues:p.stack});
+   }
+ });
+
+ // Publicación directa en el chat, una entrada independiente por jugador/evento.
+ // Se conserva el mismo estilo de mensaje que las acciones de una mano.
+ const boardTxt=board.length?board.join(" "):"—";
+ const rows=alive.map(p=>{
+   const s=score(p.hand.concat(board));
+   return p.name+" → "+p.hand.join(" ")+" → "+nm[s[0]];
+ }).join("<br>");
+
+ // Siempre mostrar en el chat el estado de capital, RECARGAS y GUARDAS de los 6 jugadores.
+ say("<b>ESTADO DE CAPITAL · MANO "+totalHands+"</b><br>"+
+   ps.map(p=>p.name+" → "+M(p.stack)+" · RECARGAS: "+(p.recargas||0)+" · GUARDAS: "+(p.guardas||0)).join("<br>"));
+
+ // Si hubo una RECARGA/GUARDA, mostrar además el evento y la mano que lo produjo.
+ if(eventos.length){
+   eventos.forEach(e=>{
+     const accion=e.kind==="RECARGA"?"RECARGA +$25":"GUARDA -$50";
+     say("<b>"+e.p.name+": "+accion+"</b> · "+e.kind+" #"+e.num+
+         "<br>Capital: "+M(e.antes)+" → "+M(e.despues)+
+         " · RECARGAS: "+e.p.recargas+" · GUARDAS: "+e.p.guardas+
+         "<br><b>MANO FINAL</b> · Board: "+boardTxt+"<br>"+rows);
+   });
+ }
+
+ if(heroInHand){ myHandsLog.push(currentHandLog.join("\n")); currentHandLog=[]; }
+
+ if(totalHands>=maxHands){
+   over=true;
+   say("<b>SIMULACIÓN TERMINADA</b> · Se alcanzaron las 1000 manos. · Manos: "+totalHands+
+       " · Manos VOS: "+participatedHands+" · Capital: "+M(ps[0].stack)+
+       " · RECARGAS: "+(ps[0].recargas||0)+" · GUARDAS: "+(ps[0].guardas||0));
+ }else{
+   say("<b>CONTINÚA</b> · Próxima mano...");
+   setTimeout(newHand,3000);
+ }
+ render();
+}
+function downloadMyHands(){
+ const summary="=== RESUMEN VOS ===\nManos jugadas: "+participatedHands+"\nManos registradas: "+myHandsLog.length+"\nRECARGAS: "+(ps[0]?.recargas||0)+"\nGUARDAS: "+(ps[0]?.guardas||0)+"\nALL-INS ganados: "+(ps[0]?.allinGanados||0)+"\nALL-INS perdidos: "+(ps[0]?.allinPerdidos||0)+"\n\n";
+ const blob=new Blob([summary+myHandsLog.filter(Boolean).join("\n\n--------------------------------\n\n")],{type:"text/plain;charset=utf-8"});
+ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="Poker_NL25_Mis_Manos.txt"; a.click(); URL.revokeObjectURL(a.href);
+}
+window.quick=quick;window.newHand=newHand;window.human=human;window.downloadMyHands=downloadMyHands;window.downloadMyStats=downloadMyStats;window.downloadBotStats=downloadBotStats;window.downloadAllInStats=downloadAllInStats;
+window.addEventListener("error",e=>{document.getElementById("msg").textContent="Error: "+e.message});
+setup();
+totalHands=0;participatedHands=0;
+newHand();
+})();
+</script>
+</body>
+</html>
